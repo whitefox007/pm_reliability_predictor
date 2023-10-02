@@ -28,7 +28,7 @@ class _MyHomePageState extends State<AssetDetail> {
   String validationMessage = 'Please Enter Asset Fault';
   final AssetDataViewModel addAssetDetail = AssetDataViewModel();
   DateTime calcMaxDate(List dates) {
-    DateTime maxDate = dates[0];
+    DateTime maxDate = DateTime.now();
     for (var date in dates) {
       if (date.isAfter(maxDate)) {
         maxDate = date;
@@ -217,7 +217,7 @@ class _MyHomePageState extends State<AssetDetail> {
                         DateTime dateTime = DateTime.now();
                         List listTurnTime = [];
                         List listMaintainanceHour = [];
-                        int? maintenance;
+                        int maintenance = 0;
                         for (var assetData in newlist) {
                           if (assetData.fault != '') {
                             var turnOn = assetData.turnOn;
@@ -239,7 +239,7 @@ class _MyHomePageState extends State<AssetDetail> {
                         }
                         DateTime tDateTime = calcMaxDate(listTurnTime);
                         Duration dtat = dateTime.difference(tDateTime);
-                        int operationHOur = dtat.inSeconds + maintenance!;
+                        int operationHOur = dtat.inSeconds + maintenance;
                         double mtbf =
                             operationHOur / listMaintainanceHour.length;
                         double failureRate = -hoursValue / mtbf;
@@ -263,224 +263,226 @@ class _MyHomePageState extends State<AssetDetail> {
             height: 50,
             child: Center(
                 child: Text(
-              '${(predictResult * 100).toStringAsFixed(2)} %',
+             predictResult.isNaN ? "No Log Found" : '${(predictResult * 100).toStringAsFixed(2)} %',
               style: Theme.of(context).textTheme.headlineMedium,
             ))),
       ],
     );
   }
 
-  Column details(BuildContext context, String? assetid) {
-    return Column(
-      children: [
-        SizedBox(
-          width: double.infinity,
-          height: 50,
-          child: Center(
-              child: Text(
-            '${widget.assetName}',
-            style: Theme.of(context).textTheme.headlineMedium,
-          )),
-        ),
-        const Divider(
-          color: Colors.black,
-          height: 0.5,
-        ),
-        widget.imageUrl == null || widget.imageUrl =="" ? Container() :
-        Container(
-          height: 200,
-          width: double.infinity,
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            image: DecorationImage(
-              fit: BoxFit.contain,
-              image: CachedNetworkImageProvider(widget.imageUrl!))
+  SingleChildScrollView details(BuildContext context, String? assetid) {
+    return SingleChildScrollView(
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            height: 50,
+            child: Center(
+                child: Text(
+              '${widget.assetName}',
+              style: Theme.of(context).textTheme.headlineMedium,
+            )),
           ),
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Assign to a Location'),
-            Text(''),
-          ],
-        ),
-        const SizedBox(
-          height: 20,
-        ),
-        const Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              'worker Assigned To',
-              style: TextStyle(fontWeight: FontWeight.bold),
+          const Divider(
+            color: Colors.black,
+            height: 0.5,
+          ),
+          widget.imageUrl == null || widget.imageUrl =="" ? Container() :
+          Container(
+            height: 200,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              image: DecorationImage(
+                fit: BoxFit.contain,
+                image: CachedNetworkImageProvider(widget.imageUrl!))
             ),
-            Text(''),
-          ],
-        ),
-        TextButton(onPressed: () {}, child: const Text('Add to New Worker')),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text('Asset Active / Inactive'),
-            StreamBuilder<QuerySnapshot>(
-                stream: FirebaseFirestore.instance
-                    .collection('assets')
-                    .doc(assetid)
-                    .collection('assetsData')
-                    .where('assetid', isEqualTo: assetid)
-                    .where('turnOn', isNull: true)
-                    .snapshots(),
-                builder: (context, snapshot) {
-                  if (snapshot.connectionState == ConnectionState.waiting) {
-                    return const Text('loading.......');
-                  }
-                  if (snapshot.hasError) {
-                    return const Text('No Data Available');
-                  }
-                  final assetDetails = snapshot.data!.docs.map((docs) {
-                    return AssetDataModel.fromDocument(docs).active;
-                  }).toList();
-                  final assetDetailID = snapshot.data!.docs.map((docs) {
-                    return AssetDataModel.fromDocument(docs).id;
-                  }).toList();
-                  bool? assetState;
-                  assetDetails.isEmpty
-                      ? assetState = true
-                      : assetState = assetDetails[0];
-                  return Switch(
-                    value: assetState == _giveVerse ? _giveVerse : false,
-                    onChanged: (bool newValue) async {
-                      if (newValue == true) {
-                        await AssetDataViewModel().updateAssetData(
-                            context: context,
-                            turnOn: DateTime.now(),
-                            assetid: assetid,
-                            assetDataid: assetDetailID[0],
-                            active: true);
-                      }
-
-                      setState(() {
-                        _giveVerse = newValue;
-                      });
-                      if (_giveVerse == false) {
-                        // ignore: use_build_context_synchronously
-                        await showDialog(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (context) {
-                              return StatefulBuilder(
-                                  builder: (context, setState) {
-                                return AlertDialog(
-                                  title: const Text('Asset Log'),
-                                  content: Column(
-                                    children: [
-                                      DropdownButtonFormField(
-                                        value: _selectedValue,
-                                        isExpanded: true,
-                                        onChanged: (String? value) {
-                                          setState(() {
-                                            _selectedValue = value!;
-                                          });
-                                        },
-                                        onSaved: (String? value) {
-                                          setState(() {
-                                            _selectedValue = value!;
-                                          });
-                                        },
-                                        validator: (String? value) {
-                                          if (value!.isEmpty) {
-                                            return "can't empty";
-                                          } else {
-                                            return null;
-                                          }
-                                        },
-                                        items: listOfValue.map((String val) {
-                                          return DropdownMenuItem(
-                                            value: val,
-                                            child: Text(
-                                              val,
-                                            ),
-                                          );
-                                        }).toList(),
-                                      ),
-                                      _selectedValue == 'Fault'
-                                          ? TextField(
-                                              decoration: const InputDecoration(
-                                                  hintText: 'Enter Fault'),
-                                              onChanged: (value) {
-                                                fault = value;
-                                              },
-                                            )
-                                          : Container(),
-                                      validation == false
-                                          ? Text(
-                                              validationMessage,
-                                              style: const TextStyle(
-                                                  color: Colors.red),
-                                            )
-                                          : Container()
-                                    ],
-                                  ),
-                                  actions: [
-                                    ElevatedButton(
-                                        onPressed: () {
-                                          setState(() {
-                                            _giveVerse = true;
-                                          });
-                                          Navigator.pop(context);
-                                        },
-                                        child: const Text('Cancel')),
-                                    ElevatedButton(
-                                        onPressed: () {
-                                          if (fault == '' &&
-                                              _selectedValue != 'Normal') {
+          ),
+          const SizedBox(
+            height: 20,
+          ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Assign to a Location'),
+              Text(''),
+            ],
+          ),
+          const SizedBox(
+            height: 20,
+          ),
+          const Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'worker Assigned To',
+                style: TextStyle(fontWeight: FontWeight.bold),
+              ),
+              Text(''),
+            ],
+          ),
+          TextButton(onPressed: () {}, child: const Text('Add to New Worker')),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text('Asset Active / Inactive'),
+              StreamBuilder<QuerySnapshot>(
+                  stream: FirebaseFirestore.instance
+                      .collection('assets')
+                      .doc(assetid)
+                      .collection('assetsData')
+                      .where('assetid', isEqualTo: assetid)
+                      .where('turnOn', isNull: true)
+                      .snapshots(),
+                  builder: (context, snapshot) {
+                    if (snapshot.connectionState == ConnectionState.waiting) {
+                      return const Text('loading.......');
+                    }
+                    if (snapshot.hasError) {
+                      return const Text('No Data Available');
+                    }
+                    final assetDetails = snapshot.data!.docs.map((docs) {
+                      return AssetDataModel.fromDocument(docs).active;
+                    }).toList();
+                    final assetDetailID = snapshot.data!.docs.map((docs) {
+                      return AssetDataModel.fromDocument(docs).id;
+                    }).toList();
+                    bool? assetState;
+                    assetDetails.isEmpty
+                        ? assetState = true
+                        : assetState = assetDetails[0];
+                    return Switch(
+                      value: assetState == _giveVerse ? _giveVerse : false,
+                      onChanged: (bool newValue) async {
+                        if (newValue == true) {
+                          await AssetDataViewModel().updateAssetData(
+                              context: context,
+                              turnOn: DateTime.now(),
+                              assetid: assetid,
+                              assetDataid: assetDetailID[0],
+                              active: true);
+                        }
+    
+                        setState(() {
+                          _giveVerse = newValue;
+                        });
+                        if (_giveVerse == false) {
+                          // ignore: use_build_context_synchronously
+                          await showDialog(
+                              context: context,
+                              barrierDismissible: false,
+                              builder: (context) {
+                                return StatefulBuilder(
+                                    builder: (context, setState) {
+                                  return AlertDialog(
+                                    title: const Text('Asset Log'),
+                                    content: Column(
+                                      children: [
+                                        DropdownButtonFormField(
+                                          value: _selectedValue,
+                                          isExpanded: true,
+                                          onChanged: (String? value) {
                                             setState(() {
-                                              validation = false;
+                                              _selectedValue = value!;
                                             });
-                                          }
-                                          if (fault.isNotEmpty ||
-                                              _selectedValue == 'Normal') {
-                                            DateTime dateTime = DateTime.now();
-                                            addAssetDetail.addAssetData(
-                                                assetid: assetid!,
-                                                active: false,
-                                                fault: fault,
-                                                shutDown: dateTime,
-                                                context: context);
-
+                                          },
+                                          onSaved: (String? value) {
                                             setState(() {
-                                              _giveVerse = false;
+                                              _selectedValue = value!;
+                                            });
+                                          },
+                                          validator: (String? value) {
+                                            if (value!.isEmpty) {
+                                              return "can't empty";
+                                            } else {
+                                              return null;
+                                            }
+                                          },
+                                          items: listOfValue.map((String val) {
+                                            return DropdownMenuItem(
+                                              value: val,
+                                              child: Text(
+                                                val,
+                                              ),
+                                            );
+                                          }).toList(),
+                                        ),
+                                        _selectedValue == 'Fault'
+                                            ? TextField(
+                                                decoration: const InputDecoration(
+                                                    hintText: 'Enter Fault'),
+                                                onChanged: (value) {
+                                                  fault = value;
+                                                },
+                                              )
+                                            : Container(),
+                                        validation == false
+                                            ? Text(
+                                                validationMessage,
+                                                style: const TextStyle(
+                                                    color: Colors.red),
+                                              )
+                                            : Container()
+                                      ],
+                                    ),
+                                    actions: [
+                                      ElevatedButton(
+                                          onPressed: () {
+                                            setState(() {
+                                              _giveVerse = true;
                                             });
                                             Navigator.pop(context);
-                                          }
-                                        },
-                                        child: const Text('Submit'))
-                                  ],
-                                );
+                                          },
+                                          child: const Text('Cancel')),
+                                      ElevatedButton(
+                                          onPressed: () {
+                                            if (fault == '' &&
+                                                _selectedValue != 'Normal') {
+                                              setState(() {
+                                                validation = false;
+                                              });
+                                            }
+                                            if (fault.isNotEmpty ||
+                                                _selectedValue == 'Normal') {
+                                              DateTime dateTime = DateTime.now();
+                                              addAssetDetail.addAssetData(
+                                                  assetid: assetid!,
+                                                  active: false,
+                                                  fault: fault,
+                                                  shutDown: dateTime,
+                                                  context: context);
+    
+                                              setState(() {
+                                                _giveVerse = false;
+                                              });
+                                              Navigator.pop(context);
+                                            }
+                                          },
+                                          child: const Text('Submit'))
+                                    ],
+                                  );
+                                });
                               });
-                            });
-                        setState(() {});
-                      } else {
-                        String? assetDataid = await _getAssetID();
-                        if (assetDataid != null) {
-                          // ignore: use_build_context_synchronously
-                          AssetDataViewModel().updateAssetData(
-                              assetid: assetid,
-                              assetDataid: assetDataid,
-                              active: true,
-                              turnOn: DateTime.now(),
-                              context: context);
+                          setState(() {});
+                        } else {
+                          String? assetDataid = await _getAssetID();
+                          if (assetDataid != null) {
+                            // ignore: use_build_context_synchronously
+                            AssetDataViewModel().updateAssetData(
+                                assetid: assetid,
+                                assetDataid: assetDataid,
+                                active: true,
+                                turnOn: DateTime.now(),
+                                context: context);
+                          }
                         }
-                      }
-                    },
-                  );
-                }),
-          ],
-        ),
-      ],
+                      },
+                    );
+                  }),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
