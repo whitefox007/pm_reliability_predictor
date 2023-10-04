@@ -52,16 +52,21 @@ class FirebaseGet extends GetxController{
           .toList();
     });
   }
-  void deleteAsset(String documentId) {
-     _firebaseFirestore
-        .collection('assets')
-        .doc(documentId)
-        .delete();
+  Future<void> deleteAsset(String documentId) async {
+    final QuerySnapshot<Map<String, dynamic>> assetsDataSnapshot =
+        await _firebaseFirestore
+            .collection('assets')
+            .doc(documentId)
+            .collection('assetsData')
+            .get();
 
-      // _firebaseFirestore
-      // .collection('assetsData')
-      // .where('assetid', isEqualTo: assetid.value)
-      // .snapshots();
-        
+    final List<Future<void>> futures = [];
+    for (final QueryDocumentSnapshot<Map<String, dynamic>> assetDataSnapshot
+        in assetsDataSnapshot.docs) {
+      futures.add(assetDataSnapshot.reference.delete());
+    }
+    await Future.wait(futures);
+
+    await _firebaseFirestore.collection('assets').doc(documentId).delete();
   }
 }

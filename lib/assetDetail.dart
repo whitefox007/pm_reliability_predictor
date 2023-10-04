@@ -273,15 +273,11 @@ class _MyHomePageState extends State<AssetDetail> {
   SingleChildScrollView details(BuildContext context, String? assetid) {
     return SingleChildScrollView(
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SizedBox(
-            width: double.infinity,
-            height: 50,
-            child: Center(
-                child: Text(
-              '${widget.assetName}',
-              style: Theme.of(context).textTheme.headlineMedium,
-            )),
+          Text(
+            '${widget.assetName}',
+            style: Theme.of(context).textTheme.headlineMedium,
           ),
           const Divider(
             color: Colors.black,
@@ -289,12 +285,12 @@ class _MyHomePageState extends State<AssetDetail> {
           ),
           widget.imageUrl == null || widget.imageUrl =="" ? Container() :
           Container(
-            height: 200,
+            height: 300,
             width: double.infinity,
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
               image: DecorationImage(
-                fit: BoxFit.contain,
+                fit: BoxFit.cover,
                 image: CachedNetworkImageProvider(widget.imageUrl!))
             ),
           ),
